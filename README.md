@@ -1,1 +1,0 @@
-# znwl-agriculture-server-no
