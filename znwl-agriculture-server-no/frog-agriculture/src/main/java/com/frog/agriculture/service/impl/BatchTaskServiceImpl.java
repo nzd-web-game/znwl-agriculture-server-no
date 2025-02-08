@@ -89,39 +89,54 @@ public class BatchTaskServiceImpl implements IBatchTaskService
      * @return 结果
      */
     @Override
-    public int updateBatchTask(BatchTask batchTask)
-    {
+    public int updateBatchTask(BatchTask batchTask) {
+        // 设置更新者为当前用户的ID
         batchTask.setUpdateBy(SecurityUtils.getUserId().toString());
+        // 设置更新时间为当前时间
         batchTask.setUpdateTime(DateUtils.getNowDate());
+        // 调用数据访问层更新批次任务，并返回受影响的行数
         int i = batchTaskMapper.updateBatchTask(batchTask);
-        //每次更新检查一下任务是否都已经完成
-        HashMap<String,Long> hm = batchTaskMapper.selectFinishTask(batchTask.getBatchId());
+        // 每次更新检查一下任务是否都已经完成
+        HashMap<String, Long> hm = batchTaskMapper.selectFinishTask(batchTask.getBatchId());
+        // 根据批次ID查询对应的CropBatch对象
         CropBatch cropBatch = cropBatchMapper.selectCropBatchByBatchId(batchTask.getBatchId());
-        if(hm.get("num") == 0){
+        // 检查完成的任务数量，如果为0表示任务已完成
+        if (hm.get("num") == 0) {
+            // 更新CropBatch状态为"1"，表示已完成
             cropBatch.setStatus("1");
+            // 更新数据库中的CropBatch状态
             cropBatchMapper.updateCropBatch(cropBatch);
-//            ####
+            // 创建一个合约地址列表
             ArrayList<String> listContract = new ArrayList<>();
+            // 再次查询CropBatch数据以获取合约地址
             CropBatch data = cropBatchMapper.selectCropBatchByBatchId(batchTask.getBatchId());
+            // 将合约地址添加到列表中
             listContract.add(data.getContractAddress());
-//            for (IaPartition ivLivestock : ivLivestocks) {
-//                listContract.add(ivLivestock.getContractAddr());
-//            }
-            //上链
+            // for (IaPartition ivLivestock : ivLivestocks) {
+            //     listContract.add(ivLivestock.getContractAddr());
+            // }
+            // 准备上链操作
             PlatformOffHarvestInputBO pohi = new PlatformOffHarvestInputBO();
+            // 设置合约地址列表
             pohi.set_partitionsss(listContract);
             try {
+                // 调用平台服务执行上链操作
                 TransactionResponse ot = platformService.offHarvest(pohi);
+                // 检查上链结果，如果不成功则抛出异常
                 if (!ot.getReceiptMessages().equals(CommonContant.SUCCESS_MESSAGE)) {
                     throw new RuntimeException();
                 }
             } catch (Exception e) {
+                // 捕获异常并抛出运行时异常
                 throw new RuntimeException(e);
             }
-        }else {
+        } else {
+            // 如果任务未完成，则将CropBatch状态设为"0"
             cropBatch.setStatus("0");
+            // 更新数据库中的CropBatch状态
             cropBatchMapper.updateCropBatch(cropBatch);
         }
+        // 返回更新操作影响的行数
         return i;
     }
 

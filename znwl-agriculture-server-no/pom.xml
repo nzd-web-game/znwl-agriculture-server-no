@@ -245,7 +245,8 @@
 <!--        <module>frog-iot</module>-->
 <!--        <module>frog-sip-server</module>-->
         <module>frog-agriculture</module>
-<!--        <module>vip</module>-->
+        <module>frog-bot</module>
+        <!--        <module>vip</module>-->
     </modules>
     <packaging>pom</packaging>
 

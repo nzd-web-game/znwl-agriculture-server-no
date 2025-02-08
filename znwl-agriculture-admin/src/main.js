@@ -54,6 +54,8 @@ import DataTag from '@/components/DataTag'
 import VueMeta from 'vue-meta'
 // 字典数据组件
 import DictData from '@/components/DictData'
+import AUDia from '@/components/Bot/Dia.vue'
+Vue.component('AUDia', AUDia)
 //拖拽组件
 import VueDraggableResizable from 'vue-draggable-resizable'
 import 'vue-draggable-resizable/dist/VueDraggableResizable.css'

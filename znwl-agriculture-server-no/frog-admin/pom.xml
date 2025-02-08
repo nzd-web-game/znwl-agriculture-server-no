@@ -79,6 +79,12 @@
             <version>${frog.version}</version>
         </dependency>
 
+        <dependency>
+            <groupId>com.frog</groupId>
+            <artifactId>frog-bot</artifactId>
+            <version>3.8.0</version>
+        </dependency>
+
     </dependencies>
 
     <build>

@@ -92,81 +92,101 @@ public class CropBatchServiceImpl implements ICropBatchService
 
     /**
      * 新增作物批次
-     * 
+     *
      * @param cropBatch 作物批次
      * @return 结果
      */
     @Override
     @Transactional
-    public int insertCropBatch(CropBatch cropBatch)
-    {
+    public int insertCropBatch(CropBatch cropBatch) {
+
+
+        // 根据土地ID查询相应的IaPasture对象
         IaPasture iaPasture = iaPastureMapper.selectById(cropBatch.getLandId().toString());
+        // 获取对应的合约地址
         String psContractAddr = iaPasture.getContractAddr();
+        // 如果IaPasture对象为空或者合约地址为空，返回0表示失败
         if (iaPasture == null || StrUtil.isBlank(psContractAddr)) {
-            return  0;
+            return 0;
         }
+        // 生成一个新的唯一ID作为批次ID
         String snowflakeId = BaseUtil.getSnowflakeId();
         long batchId = Long.parseLong(snowflakeId);  // 将String转为long类型
+        // 设置作物批次的ID
         cropBatch.setBatchId(batchId);
+        // 设置创建时间为当前时间
         cropBatch.setCreateTime(DateUtils.getNowDate());
+        // 设置创建者为当前用户的ID
         cropBatch.setCreateBy(SecurityUtils.getUserId().toString());
 
-//        上链
-        Date now = new Date();
+        // 上链操作
+        Date now = new Date();  // 获取当前时间
         PlatformAddPartitionsInputBO partitionsInputBO = new PlatformAddPartitionsInputBO();
+        // 设置上链所需参数
         partitionsInputBO.set_id(new BigInteger(String.valueOf(cropBatch.getBatchId())));
         partitionsInputBO.set_partitionsName(cropBatch.getBatchName());
         partitionsInputBO.set_notes(cropBatch.getRemark() == null ? " " : cropBatch.getRemark());
         partitionsInputBO.set_plantingName(germplasmService.selectGermplasmByGermplasmId(cropBatch.getGermplasmId()).getCropName());
         partitionsInputBO.set_plantingDate(DateUtil.format(now, "yyyy-MM-dd HH:mm:ss"));
-        partitionsInputBO.set_plantingVarieties(cropBatch.getVariety()==null?"种类为空":cropBatch.getVariety());
-        partitionsInputBO.set_ofGreenhouse(psContractAddr);
+        partitionsInputBO.set_plantingVarieties(cropBatch.getVariety() == null ? "种类为空" : cropBatch.getVariety());
+        partitionsInputBO.set_ofGreenhouse(psContractAddr);  // 设置温室的合约地址
+
         try {
+            // 调用平台服务进行上链
             TransactionResponse transactionResponse = platformService.addPartitions(partitionsInputBO);
+            // 检查上链结果，如果成功则获取合约地址
             if (transactionResponse.getReceiptMessages().equals(CommonContant.SUCCESS_MESSAGE)) {
                 String contractAddressArray = transactionResponse.getValues();
                 JSONArray jsonArray = JSONUtil.parseArray(contractAddressArray);
-                String contractAddress = jsonArray.getStr(0);
+                String contractAddress = jsonArray.getStr(0);  // 获取第一个合约地址
+                // 设置作物批次的合约地址
                 cropBatch.setContractAddress(contractAddress);
             } else {
-                throw new RuntimeException();
+                throw new RuntimeException();  // 如果上链失败，抛出异常
             }
         } catch (Exception e) {
-            throw new RuntimeException(e);
+            throw new RuntimeException(e);  // 捕获异常并抛出
         }
 
-//        结束
-        int i =cropBatchMapper.insertCropBatch(cropBatch);
+        // 结束上链操作，插入作物批次到数据库
+        int i = cropBatchMapper.insertCropBatch(cropBatch);
+        // 创建查询条件，查询标准作业列表
         StandardJob queryPar = new StandardJob();
         queryPar.setGermplasmId(cropBatch.getGermplasmId());
+        // 查询标准作业列表
         List<StandardJob> sjList = standardJobMapper.selectStandardJobList(queryPar);
-        for(StandardJob sj : sjList){
+        // 遍历标准作业列表，生成批次任务
+        for (StandardJob sj : sjList) {
             BatchTask bt = new BatchTask();
+            // 设置批次任务的相关信息
             bt.setBatchId(cropBatch.getBatchId());
             bt.setTaskHead(cropBatch.getBatchHead());
             bt.setTaskName(sj.getJobName());
 
-            int mult = sj.getCycleUnit()=="0"?1:7;
+            // 计算周期单位，如果单位为"0"，则周期为1，否则为7
+            int mult = sj.getCycleUnit().equals("0") ? 1 : 7;
             try {
-                bt.setPlanStart(DateUtils.plusDay((int)(sj.getJobStart() * mult),cropBatch.getStartTime()));
-                bt.setPlanFinish(DateUtils.plusDay((int)(sj.getJobFinish() * mult),cropBatch.getStartTime()));
+                // 设置计划开始时间和计划完成时间
+                bt.setPlanStart(DateUtils.plusDay((int) (sj.getJobStart() * mult), cropBatch.getStartTime()));
+                bt.setPlanFinish(DateUtils.plusDay((int) (sj.getJobFinish() * mult), cropBatch.getStartTime()));
             } catch (ParseException e) {
-                throw new RuntimeException(e);
+                throw new RuntimeException(e);  // 捕获解析异常并抛出
             }
+            // 插入批次任务到数据库
             batchTaskMapper.insertBatchTask(bt);
+            // 创建任务日志
             TaskLog tl = new TaskLog();
             tl.setTaskId(bt.getTaskId());
-            tl.setOperName(SecurityUtils.getUsername());
-            tl.setOperId(SecurityUtils.getUserId());
-            tl.setOperDes("创建任务");
-            tl.setCreateTime(DateUtils.getNowDate());
+            tl.setOperName(SecurityUtils.getUsername());  // 操作用户名
+            tl.setOperId(SecurityUtils.getUserId());  // 操作用户ID
+            tl.setOperDes("创建任务");  // 操作描述
+            tl.setCreateTime(DateUtils.getNowDate());  // 创建时间为当前时间
+            // 插入任务日志到数据库
             taskLogMapper.insertTaskLog(tl);
-
         }
 
-
+        // 返回插入作物批次的结果
         return i;
-
     }
 
     /**

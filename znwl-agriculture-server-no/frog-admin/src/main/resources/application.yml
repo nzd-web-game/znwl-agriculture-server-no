@@ -1,3 +1,19 @@
+# bot配置
+bot:
+  name: bot
+  aiModel: qwen2.5:14b
+  aiUrl: http://10.0.28.45:11434/api
+  aiDoc: generate
+  stream: true
+  aiTimeoutMsec: 30000
+  asrUrl: ws://127.0.0.1:10095
+  ttsUrl: http://10.0.28.23:50000/inference_
+  ttsMode: zero_shot
+  spkId: 中文女
+  promptText: 希望你以后能够做的比我还好呦。
+  promptWav: static/cross_lingual_prompt.wav
+  instructText: Theo \'Crimson\', is a fiery, passionate rebel leader. \ Fights with fervor for justice, but struggles with impulsiveness.
+
 # 项目相关配置
 ruoyi:
   # 名称
@@ -170,6 +186,9 @@ spring:
         core-size: 10         # 最小连接数
         max-size: 30          # 最大连接数
         queue-capacity: 3000  # 最大容量
+  mvc:
+    async:
+      request-timeout: 1000000
 
 # token配置
 token:
@@ -268,14 +287,17 @@ mybatis-plus:
 #    call-setters-on-nulls: true
 #    # 启用控制台 SQL 日志输出
 #    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
-
+# 区块链配置
 system:
+  # 虚拟机IP:端口
   peers:  10.0.12.40:20200
   groupId: 1
   node: 1
   certPath: conf
+  # 私钥
   privateKey: "213777107e3e6444e03ef10add84e95be071e5bca769dcad77afec6765fb5be7"
   contract:
+    # 合约地址
     insurePlatformAddress: "0xc99a42a65608dc0e6e726ffc490489e67372fabd"
 
 
